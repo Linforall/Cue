@@ -256,10 +256,6 @@ async function closeOverlay() {
     resetUI()
   }
 }
-  } else {
-    resetUI()
-  }
-}
 
 function resetUI() {
   appState.value = 'idle'
