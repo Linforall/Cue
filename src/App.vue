@@ -1,6 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { getCurrentWindow } from '@tauri-apps/api/window'
+import { ref, computed, onMounted, watch } from 'vue'
 
 // 状态
 const appState = ref('idle') // idle, running, paused
@@ -192,12 +191,8 @@ function stopTimer() {
   remainingSeconds.value = 0
 }
 
-async function timerComplete() {
+function timerComplete() {
   stopTimer()
-
-  // 全屏显示
-  const appWindow = getCurrentWindow()
-  await appWindow.setFullscreen(true)
 
   showOverlay.value = true
 
@@ -207,12 +202,8 @@ async function timerComplete() {
   }, settings.value.autoCloseTime * 1000)
 }
 
-async function closeOverlay() {
+function closeOverlay() {
   showOverlay.value = false
-
-  // 退出全屏
-  const appWindow = getCurrentWindow()
-  await appWindow.setFullscreen(false)
 
   if (isLoop.value) {
     startCountdown()
@@ -751,19 +742,19 @@ input:checked + .slider:before {
   color: #eee;
 }
 
-/* 提醒遮罩 */
+/* 提醒遮罩 - 全屏覆盖 */
 .overlay {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.9);
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.95);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  z-index: 9999;
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -778,15 +769,15 @@ input:checked + .slider:before {
 }
 
 .overlay-content p {
-  font-size: 32px;
+  font-size: 48px;
   color: #00d4ff;
-  text-shadow: 0 0 30px rgba(0,212,255,0.6);
+  text-shadow: 0 0 40px rgba(0,212,255,0.8);
 }
 
 .close-btn {
   position: absolute;
-  bottom: 40px;
-  padding: 14px 48px;
+  bottom: 80px;
+  padding: 16px 64px;
   background: #00d4ff;
   color: #1a1a2e;
   border: none;
