@@ -20,6 +20,7 @@ const settings = ref({
 // 计时器
 let timerInterval = null
 const remainingSeconds = ref(0)
+let isPaused = false
 
 // 生成数字数组
 const generateNumbers = (start, end, step = 1) => {
@@ -165,6 +166,8 @@ function startCountdown() {
   remainingSeconds.value = totalSeconds.value
 
   timerInterval = setInterval(() => {
+    if (isPaused) return
+
     remainingSeconds.value--
     updateDisplay()
 
@@ -175,10 +178,12 @@ function startCountdown() {
 }
 
 function pauseTimer() {
+  isPaused = true
   appState.value = 'paused'
 }
 
 function resumeTimer() {
+  isPaused = false
   appState.value = 'running'
 }
 
@@ -187,6 +192,7 @@ function stopTimer() {
     clearInterval(timerInterval)
     timerInterval = null
   }
+  isPaused = false
   appState.value = 'idle'
   remainingSeconds.value = 0
 }
