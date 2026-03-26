@@ -748,13 +748,13 @@ input:checked + .slider:before {
   color: #eee;
 }
 
-/* 提醒遮罩 - 全屏覆盖 */
+/* 提醒遮罩 - 覆盖整个显示屏 */
 .overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  top: -100vh;
+  left: -100vw;
+  width: 300vw;
+  height: 300vh;
   background: rgba(0,0,0,0.95);
   display: flex;
   flex-direction: column;
@@ -770,8 +770,11 @@ input:checked + .slider:before {
 }
 
 .overlay-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   text-align: center;
-  margin-bottom: 60px;
 }
 
 .overlay-content p {
@@ -781,8 +784,10 @@ input:checked + .slider:before {
 }
 
 .close-btn {
-  position: absolute;
-  bottom: 80px;
+  position: fixed;
+  top: 60%;
+  left: 50%;
+  transform: translateX(-50%);
   padding: 16px 64px;
   background: #00d4ff;
   color: #1a1a2e;
