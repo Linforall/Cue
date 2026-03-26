@@ -44,6 +44,7 @@ const secondOffset = ref(0)
 let isDragging = false
 let startY = 0
 let startOffset = 0
+let dragType = null  // 当前拖拽的列
 
 const itemHeight = 60
 
@@ -96,6 +97,7 @@ function handleWheel(e, type) {
 
 function handleMouseDown(e, type) {
   isDragging = true
+  dragType = type
   startY = e.clientY
 
   if (type === 'hour') startOffset = hourOffset.value
@@ -104,17 +106,15 @@ function handleMouseDown(e, type) {
 }
 
 function handleMouseMove(e) {
-  if (!isDragging) return
+  if (!isDragging || !dragType) return
 
   const delta = e.clientY - startY
 
-  if (hourIndex.value !== undefined) {
+  if (dragType === 'hour') {
     hourOffset.value = startOffset + delta
-  }
-  if (minuteIndex.value !== undefined) {
+  } else if (dragType === 'minute') {
     minuteOffset.value = startOffset + delta
-  }
-  if (secondIndex.value !== undefined) {
+  } else {
     secondOffset.value = startOffset + delta
   }
 }
@@ -123,10 +123,16 @@ function handleMouseUp() {
   if (!isDragging) return
   isDragging = false
 
-  // 对齐到最近的选项
-  hourOffset.value = Math.round(hourOffset.value / itemHeight) * itemHeight
-  minuteOffset.value = Math.round(minuteOffset.value / itemHeight) * itemHeight
-  secondOffset.value = Math.round(secondOffset.value / itemHeight) * itemHeight
+  // 只对齐当前拖拽的列
+  if (dragType === 'hour') {
+    hourOffset.value = Math.round(hourOffset.value / itemHeight) * itemHeight
+  } else if (dragType === 'minute') {
+    minuteOffset.value = Math.round(minuteOffset.value / itemHeight) * itemHeight
+  } else if (dragType === 'second') {
+    secondOffset.value = Math.round(secondOffset.value / itemHeight) * itemHeight
+  }
+
+  dragType = null
 }
 
 // 计算总秒数
