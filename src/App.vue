@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 
 // 状态
@@ -20,7 +20,7 @@ const settings = ref({
 
 // 计时器
 let timerInterval = null
-let remainingSeconds = ref(0)
+const remainingSeconds = ref(0)
 
 // 生成数字数组
 const generateNumbers = (start, end, step = 1) => {
@@ -35,10 +35,99 @@ const hourOptions = generateNumbers(0, 23)
 const minuteOptions = generateNumbers(0, 59, 5)
 const secondOptions = generateNumbers(0, 59, 5)
 
-// 转盘索引
-const hourIndex = ref(0)
-const minuteIndex = ref(1)
-const secondIndex = ref(0)
+// 转盘偏移量（像素）
+const hourOffset = ref(0)
+const minuteOffset = ref(-60)  // 默认选中第2个（05分）
+const secondOffset = ref(0)
+
+// 拖拽状态
+let isDragging = false
+let startY = 0
+let startOffset = 0
+
+const itemHeight = 60
+
+// 计算当前选中的索引
+const hourIndex = computed(() => Math.round(-hourOffset.value / itemHeight))
+const minuteIndex = computed(() => Math.round(-minuteOffset.value / itemHeight))
+const secondIndex = computed(() => Math.round(-secondOffset.value / itemHeight))
+
+// 同步到时间值
+watch(hourIndex, (idx) => {
+  const normalized = ((idx % 24) + 24) % 24
+  hours.value = normalized
+})
+
+watch(minuteIndex, (idx) => {
+  const normalized = ((idx % 12) + 12) % 12
+  minutes.value = normalized * 5
+})
+
+watch(secondIndex, (idx) => {
+  const normalized = ((idx % 12) + 12) % 12
+  seconds.value = normalized * 5
+})
+
+// 初始化偏移量
+onMounted(() => {
+  minuteOffset.value = -60  // 默认05:00
+})
+
+// 鼠标/触摸处理
+function handleWheel(e, type) {
+  e.preventDefault()
+  const delta = e.deltaY > 0 ? itemHeight : -itemHeight
+
+  if (type === 'hour') {
+    hourOffset.value += delta
+    // 循环
+    if (hourOffset.value > 0) hourOffset.value = -23 * itemHeight
+    if (hourOffset.value < -23 * itemHeight) hourOffset.value = 0
+  } else if (type === 'minute') {
+    minuteOffset.value += delta
+    if (minuteOffset.value > 0) minuteOffset.value = -11 * itemHeight
+    if (minuteOffset.value < -11 * itemHeight) minuteOffset.value = 0
+  } else {
+    secondOffset.value += delta
+    if (secondOffset.value > 0) secondOffset.value = -11 * itemHeight
+    if (secondOffset.value < -11 * itemHeight) secondOffset.value = 0
+  }
+}
+
+function handleMouseDown(e, type) {
+  isDragging = true
+  startY = e.clientY
+
+  if (type === 'hour') startOffset = hourOffset.value
+  else if (type === 'minute') startOffset = minuteOffset.value
+  else startOffset = secondOffset.value
+}
+
+function handleMouseMove(e) {
+  if (!isDragging) return
+
+  const delta = e.clientY - startY
+
+  if (hourIndex.value !== undefined) {
+    hourOffset.value = startOffset + delta
+  }
+  if (minuteIndex.value !== undefined) {
+    minuteOffset.value = startOffset + delta
+  }
+  if (secondIndex.value !== undefined) {
+    secondOffset.value = startOffset + delta
+  }
+}
+
+function handleMouseUp() {
+  if (!isDragging) return
+  isDragging = false
+
+  // 对齐到最近的选项
+  hourOffset.value = Math.round(hourOffset.value / itemHeight) * itemHeight
+  minuteOffset.value = Math.round(minuteOffset.value / itemHeight) * itemHeight
+  secondOffset.value = Math.round(secondOffset.value / itemHeight) * itemHeight
+}
 
 // 计算总秒数
 const totalSeconds = computed(() => {
@@ -187,9 +276,10 @@ const actionBtnText = computed(() => {
     </button>
 
     <!-- 转盘选择器 -->
-    <div class="picker-container">
-      <div class="picker-column">
-        <div class="picker-wheel" :style="{ transform: `translateY(${hourIndex * 60}px)` }">
+    <div class="picker-container" @mousemove="handleMouseMove" @mouseup="handleMouseUp" @mouseleave="handleMouseUp">
+      <div class="picker-column" @wheel="(e) => handleWheel(e, 'hour')" @mousedown="(e) => handleMouseDown(e, 'hour')">
+        <div class="picker-highlight"></div>
+        <div class="picker-wheel" :style="{ transform: `translateY(${hourOffset}px)` }">
           <div
             v-for="(num, i) in [...hourOptions, ...hourOptions, ...hourOptions]"
             :key="`h-${i}`"
@@ -199,11 +289,11 @@ const actionBtnText = computed(() => {
             {{ num }}
           </div>
         </div>
-        <input type="range" min="0" max="23" v-model="hours" class="picker-input" @change="hourIndex = hours">
       </div>
       <span class="separator">:</span>
-      <div class="picker-column">
-        <div class="picker-wheel" :style="{ transform: `translateY(${minuteIndex * 60}px)` }">
+      <div class="picker-column" @wheel="(e) => handleWheel(e, 'minute')" @mousedown="(e) => handleMouseDown(e, 'minute')">
+        <div class="picker-highlight"></div>
+        <div class="picker-wheel" :style="{ transform: `translateY(${minuteOffset}px)` }">
           <div
             v-for="(num, i) in [...minuteOptions, ...minuteOptions, ...minuteOptions]"
             :key="`m-${i}`"
@@ -213,11 +303,11 @@ const actionBtnText = computed(() => {
             {{ num }}
           </div>
         </div>
-        <input type="range" min="0" max="11" v-model="minutes" class="picker-input" @change="minuteIndex = minutes / 5">
       </div>
       <span class="separator">:</span>
-      <div class="picker-column">
-        <div class="picker-wheel" :style="{ transform: `translateY(${secondIndex * 60}px)` }">
+      <div class="picker-column" @wheel="(e) => handleWheel(e, 'second')" @mousedown="(e) => handleMouseDown(e, 'second')">
+        <div class="picker-highlight"></div>
+        <div class="picker-wheel" :style="{ transform: `translateY(${secondOffset}px)` }">
           <div
             v-for="(num, i) in [...secondOptions, ...secondOptions, ...secondOptions]"
             :key="`s-${i}`"
@@ -227,7 +317,6 @@ const actionBtnText = computed(() => {
             {{ num }}
           </div>
         </div>
-        <input type="range" min="0" max="11" v-model="seconds" class="picker-input" @change="secondIndex = seconds / 5">
       </div>
     </div>
 
@@ -360,6 +449,25 @@ body {
   overflow: hidden;
   position: relative;
   border-radius: 12px;
+  cursor: grab;
+  user-select: none;
+}
+
+.picker-column:active {
+  cursor: grabbing;
+}
+
+.picker-highlight {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 60px;
+  background: rgba(0, 212, 255, 0.1);
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .picker-wheel {
@@ -367,9 +475,10 @@ body {
   flex-direction: column;
   align-items: center;
   padding-top: 60px;
-  transition: transform 0.1s ease-out;
+  transition: transform 0.15s ease-out;
   position: absolute;
   width: 100%;
+  z-index: 2;
 }
 
 .picker-item {
@@ -387,15 +496,6 @@ body {
   color: #00d4ff;
   font-weight: 500;
   text-shadow: 0 0 20px rgba(0,212,255,0.5);
-}
-
-.picker-input {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  z-index: 10;
 }
 
 .separator {
