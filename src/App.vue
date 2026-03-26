@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 
 // 状态
 const appState = ref('idle') // idle, running, paused
@@ -96,8 +97,13 @@ function stopTimer() {
   remainingSeconds.value = 0
 }
 
-function timerComplete() {
+async function timerComplete() {
   stopTimer()
+
+  // 全屏显示
+  const appWindow = getCurrentWindow()
+  await appWindow.setFullscreen(true)
+
   showOverlay.value = true
 
   // 自动关闭
@@ -106,8 +112,13 @@ function timerComplete() {
   }, settings.value.autoCloseTime * 1000)
 }
 
-function closeOverlay() {
+async function closeOverlay() {
   showOverlay.value = false
+
+  // 退出全屏
+  const appWindow = getCurrentWindow()
+  await appWindow.setFullscreen(false)
+
   if (isLoop.value) {
     startCountdown()
   } else {
