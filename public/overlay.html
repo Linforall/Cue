@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>提醒</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: rgba(0, 0, 0, 0.95);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .content {
+      text-align: center;
+    }
+
+    .message {
+      font-size: 64px;
+      color: #00d4ff;
+      text-shadow: 0 0 60px rgba(0, 212, 255, 0.8);
+      margin-bottom: 80px;
+    }
+
+    .close-btn {
+      padding: 20px 80px;
+      background: #00d4ff;
+      color: #1a1a2e;
+      border: none;
+      border-radius: 16px;
+      font-size: 24px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+
+    .close-btn:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 40px rgba(0, 212, 255, 0.5);
+    }
+
+    .close-btn:active {
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="content">
+    <p class="message" id="message">时间到了！</p>
+    <button class="close-btn" id="close-btn">关闭</button>
+  </div>
+
+  <script type="module">
+    import { listen } from '@tauri-apps/api/event'
+    import { getCurrentWindow } from '@tauri-apps/api/window'
+
+    let autoCloseTimer = null
+
+    // 监听主窗口发来的消息
+    listen('overlay-message', async (event) => {
+      const { message, autoClose } = event.payload
+      document.getElementById('message').textContent = message
+
+      // 自动关闭
+      if (autoClose > 0) {
+        autoCloseTimer = setTimeout(async () => {
+          const appWindow = getCurrentWindow()
+          await appWindow.close()
+        }, autoClose * 1000)
+      }
+    })
+
+    // 关闭按钮
+    document.getElementById('close-btn').addEventListener('click', async () => {
+      if (autoCloseTimer) {
+        clearTimeout(autoCloseTimer)
+      }
+      const appWindow = getCurrentWindow()
+      await appWindow.close()
+    })
+
+    // 监听ESC键关闭
+    document.addEventListener('keydown', async (e) => {
+      if (e.key === 'Escape') {
+        if (autoCloseTimer) {
+          clearTimeout(autoCloseTimer)
+        }
+        const appWindow = getCurrentWindow()
+        await appWindow.close()
+      }
+    })
+  </script>
+</body>
+</html>

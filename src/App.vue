@@ -1,5 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 
 // 状态
 const appState = ref('idle') // idle, running, paused
@@ -200,19 +202,60 @@ function stopTimer() {
 function timerComplete() {
   stopTimer()
 
-  showOverlay.value = true
-
-  // 自动关闭
-  setTimeout(() => {
-    closeOverlay()
-  }, settings.value.autoCloseTime * 1000)
+  // 创建全屏遮罩窗口
+  createOverlayWindow()
 }
 
-function closeOverlay() {
-  showOverlay.value = false
+let overlayWindow = null
+
+async function createOverlayWindow() {
+  const message = reminderText.value || settings.value.defaultReminder
+
+  // 创建新窗口作为遮罩
+  overlayWindow = new WebviewWindow('overlay', {
+    url: 'overlay.html',
+    title: '',
+    width: 1,
+    height: 1,
+    x: 0,
+    y: 0,
+    fullscreen: true,
+    decorations: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    focus: true
+  })
+
+  // 等待窗口创建完成后设置全屏
+  overlayWindow.once('tauri://created', async () => {
+    // 发送消息到新窗口
+    const { emit } = await import('@tauri-apps/api/event')
+    await emit('overlay-message', { message: message, autoClose: settings.value.autoCloseTime })
+  })
+
+  // 监听窗口关闭
+  overlayWindow.once('tauri://close-requested', () => {
+    closeOverlay()
+  })
+}
+
+async function closeOverlay() {
+  if (overlayWindow) {
+    try {
+      await overlayWindow.close()
+    } catch (e) {
+      console.error('Close overlay error:', e)
+    }
+    overlayWindow = null
+  }
 
   if (isLoop.value) {
     startCountdown()
+  } else {
+    resetUI()
+  }
+}
   } else {
     resetUI()
   }
@@ -381,14 +424,6 @@ const actionBtnText = computed(() => {
           <button class="secondary-btn" @click="cancelSettings">取消</button>
         </div>
       </div>
-    </div>
-
-    <!-- 提醒遮罩 -->
-    <div v-if="showOverlay" class="overlay">
-      <div class="overlay-content">
-        <p>{{ reminderText || settings.defaultReminder }}</p>
-      </div>
-      <button class="close-btn" @click="closeOverlay">关闭</button>
     </div>
   </div>
 </template>
@@ -746,61 +781,5 @@ input:checked + .slider:before {
 .secondary-btn:hover {
   border-color: #eee;
   color: #eee;
-}
-
-/* 提醒遮罩 - 覆盖整个显示屏 */
-.overlay {
-  position: fixed;
-  top: -100vh;
-  left: -100vw;
-  width: 300vw;
-  height: 300vh;
-  background: rgba(0,0,0,0.95);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.overlay-content {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-}
-
-.overlay-content p {
-  font-size: 48px;
-  color: #00d4ff;
-  text-shadow: 0 0 40px rgba(0,212,255,0.8);
-}
-
-.close-btn {
-  position: fixed;
-  top: 60%;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 16px 64px;
-  background: #00d4ff;
-  color: #1a1a2e;
-  border: none;
-  border-radius: 12px;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.1s;
-}
-
-.close-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0,212,255,0.4);
 }
 </style>
