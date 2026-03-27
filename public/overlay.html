@@ -5,98 +5,210 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>提醒</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
 
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
     body {
-      background: rgba(0, 0, 0, 0.95);
+      background: transparent;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* 背景遮罩 - 模糊效果 */
+    .overlay-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(13, 13, 18, 0.7);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+    }
+
+    /* 径向渐变光效 - 柔和绿 */
+    .overlay-glow {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 120vmax;
+      height: 120vmax;
+      background: radial-gradient(circle,
+        rgba(74, 222, 128, 0.08) 0%,
+        rgba(34, 211, 238, 0.04) 30%,
+        transparent 60%
+      );
+      pointer-events: none;
+    }
+
+    /* 网格背景 */
+    .overlay-grid {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image:
+        linear-gradient(rgba(74, 222, 128, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74, 222, 128, 0.015) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
     }
 
     .content {
+      position: relative;
+      z-index: 1;
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 48px;
     }
 
     .message {
-      font-size: 64px;
-      color: #00d4ff;
-      text-shadow: 0 0 60px rgba(0, 212, 255, 0.8);
-      margin-bottom: 80px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(36px, 8vw, 72px);
+      font-weight: 500;
+      color: #4ade80;
+      text-shadow:
+        0 0 30px rgba(74, 222, 128, 0.5),
+        0 0 60px rgba(74, 222, 128, 0.3);
+      letter-spacing: 0.05em;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        text-shadow:
+          0 0 30px rgba(74, 222, 128, 0.5),
+          0 0 60px rgba(74, 222, 128, 0.3);
+      }
+      50% {
+        opacity: 0.95;
+        text-shadow:
+          0 0 40px rgba(74, 222, 128, 0.7),
+          0 0 80px rgba(74, 222, 128, 0.4);
+      }
     }
 
     .close-btn {
-      padding: 20px 80px;
-      background: #00d4ff;
-      color: #1a1a2e;
+      padding: 14px 40px;
+      background: linear-gradient(135deg, #4ade80, #22d3ee);
+      color: #0d0d12;
       border: none;
-      border-radius: 16px;
-      font-size: 24px;
+      border-radius: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.1s, box-shadow 0.2s;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px rgba(74, 222, 128, 0.3);
     }
 
     .close-btn:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 40px rgba(0, 212, 255, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(74, 222, 128, 0.5);
     }
 
     .close-btn:active {
-      transform: translateY(0);
+      transform: scale(0.98);
+    }
+
+    /* 倒计时显示 */
+    .countdown {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(20px, 4vw, 32px);
+      font-weight: 500;
+      color: #94a3b8;
+      letter-spacing: 0.1em;
     }
   </style>
 </head>
 <body>
+  <div class="overlay-bg"></div>
+  <div class="overlay-glow"></div>
+  <div class="overlay-grid"></div>
   <div class="content">
-    <p class="message" id="message">时间到了！</p>
+    <p class="message" id="message"></p>
+    <p class="countdown" id="countdown"></p>
     <button class="close-btn" id="close-btn">关闭</button>
   </div>
 
   <script type="module">
-    import { listen } from '@tauri-apps/api/event'
-    import { getCurrentWindow } from '@tauri-apps/api/window'
-
     let autoCloseTimer = null
+    let isLoop = false
 
-    // 监听主窗口发来的消息
-    listen('overlay-message', async (event) => {
-      const { message, autoClose } = event.payload
-      document.getElementById('message').textContent = message
+    const { listen } = window.__TAURI__.event
 
-      // 自动关闭
-      if (autoClose > 0) {
-        autoCloseTimer = setTimeout(async () => {
-          const appWindow = getCurrentWindow()
-          await appWindow.close()
-        }, autoClose * 1000)
+    listen('overlay-message', (event) => {
+      console.log('Received overlay-message:', event.payload)
+      const data = event.payload
+      const msgEl = document.getElementById('message')
+      msgEl.textContent = data.message
+      isLoop = data.isLoop || false
+
+      const closeBtn = document.getElementById('close-btn')
+      if (isLoop) {
+        closeBtn.textContent = '下一轮'
+      } else {
+        closeBtn.textContent = '关闭'
+      }
+
+      if (data.autoClose > 0) {
+        let remaining = data.autoClose
+        const countdownEl = document.getElementById('countdown')
+        countdownEl.textContent = `${remaining}s 后${isLoop ? '下一轮' : '关闭'}`
+
+        autoCloseTimer = setInterval(() => {
+          remaining--
+          if (remaining > 0) {
+            countdownEl.textContent = `${remaining}s 后${isLoop ? '下一轮' : '关闭'}`
+          } else {
+            clearInterval(autoCloseTimer)
+            window.__TAURI__.core.invoke('close_overlay').catch(() => {})
+          }
+        }, 1000)
       }
     })
 
-    // 关闭按钮
     document.getElementById('close-btn').addEventListener('click', async () => {
       if (autoCloseTimer) {
-        clearTimeout(autoCloseTimer)
+        clearInterval(autoCloseTimer)
       }
-      const appWindow = getCurrentWindow()
-      await appWindow.close()
+      try {
+        await window.__TAURI__.core.invoke('close_overlay')
+      } catch (e) {
+        console.log('close error', e)
+      }
     })
 
-    // 监听ESC键关闭
     document.addEventListener('keydown', async (e) => {
       if (e.key === 'Escape') {
         if (autoCloseTimer) {
-          clearTimeout(autoCloseTimer)
+          clearInterval(autoCloseTimer)
         }
-        const appWindow = getCurrentWindow()
-        await appWindow.close()
+        try {
+          await window.__TAURI__.core.invoke('close_overlay')
+        } catch (e) {
+          console.log('close error', e)
+        }
       }
     })
   </script>

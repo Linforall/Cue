@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4ff"/>
+      <stop offset="100%" style="stop-color:#0099cc"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="1024" height="1024" rx="180" fill="url(#bg)"/>
+
+  <!-- 外圈 -->
+  <circle cx="512" cy="512" r="400" fill="none" stroke="url(#accent)" stroke-width="24" opacity="0.3"/>
+
+  <!-- 时钟刻度 -->
+  <g stroke="#00d4ff" stroke-width="8" opacity="0.6">
+    <line x1="512" y1="140" x2="512" y2="180"/>
+    <line x1="512" y1="844" x2="512" y2="884"/>
+    <line x1="140" y1="512" x2="180" y2="512"/>
+    <line x1="844" y1="512" x2="884" y2="512"/>
+  </g>
+
+  <!-- 转盘选择器 - 时 -->
+  <rect x="200" y="280" width="180" height="464" rx="24" fill="#0f1729"/>
+  <rect x="200" y="480" width="180" height="64" rx="16" fill="rgba(0,212,255,0.15)"/>
+  <text x="290" y="520" font-family="SF Pro, -apple-system, sans-serif" font-size="160" font-weight="300" fill="#00d4ff" text-anchor="middle">05</text>
+
+  <!-- 分隔符1 -->
+  <text x="420" y="560" font-family="SF Pro, -apple-system, sans-serif" font-size="80" font-weight="200" fill="#4a4a6a" text-anchor="middle">:</text>
+
+  <!-- 转盘选择器 - 分 -->
+  <rect x="460" y="280" width="180" height="464" rx="24" fill="#0f1729"/>
+  <rect x="460" y="480" width="180" height="64" rx="16" fill="rgba(0,212,255,0.15)"/>
+  <text x="550" y="520" font-family="SF Pro, -apple-system, sans-serif" font-size="160" font-weight="300" fill="#00d4ff" text-anchor="middle">30</text>
+
+  <!-- 分隔符2 -->
+  <text x="680" y="560" font-family="SF Pro, -apple-system, sans-serif" font-size="80" font-weight="200" fill="#4a4a6a" text-anchor="middle">:</text>
+
+  <!-- 转盘选择器 - 秒 -->
+  <rect x="720" y="280" width="180" height="464" rx="24" fill="#0f1729"/>
+  <rect x="720" y="480" width="180" height="64" rx="16" fill="rgba(0,212,255,0.15)"/>
+  <text x="810" y="520" font-family="SF Pro, -apple-system, sans-serif" font-size="160" font-weight="300" fill="#00d4ff" text-anchor="middle">00</text>
+
+  <!-- 底部装饰 -->
+  <circle cx="512" cy="880" r="40" fill="url(#accent)"/>
+  <polygon points="505,865 530,880 505,895" fill="#1a1a2e"/>
+</svg>
