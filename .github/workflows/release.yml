@@ -41,6 +41,7 @@ jobs:
         with:
           args: --target x86_64-pc-windows-msvc
           createUpdaterArtifacts: false
+          uploadArtifact: false
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -81,6 +82,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: --target aarch64-apple-darwin
+          uploadArtifact: false
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
