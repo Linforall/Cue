@@ -84,11 +84,13 @@ jobs:
           args: --target aarch64-apple-darwin
           uploadArtifact: false
 
-      - name: Upload macOS artifact
+      - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-app
-          path: src-tauri/target/**/bundle/macos/*.tar.gz
+          path: |
+            src-tauri/target/**/bundle/macos/*.tar.gz
+            src-tauri/target/**/bundle/dmg/*.dmg
           if-no-files-found: error
 
   release:
@@ -107,7 +109,10 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: artifacts/**/*
+          files: |
+            artifacts/**/*x64-setup.exe
+            artifacts/**/*dmg
+            artifacts/**/*tar.gz
           draft: false
           prerelease: false
         env:
